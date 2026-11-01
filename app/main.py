@@ -1,0 +1,1 @@
+print("URL shortener service")
