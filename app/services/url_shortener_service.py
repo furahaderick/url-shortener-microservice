@@ -1,15 +1,14 @@
 from typing import Final
-from fastapi import HTTPException, status
-import redis
 
+import redis
+from fastapi import HTTPException, status
+
+from app.core.config import settings
 from app.schemas.url import UrlRequest
 from app.utils import generate_unique_id
 
-from app.core.config import settings
-
 
 class UrlShortenerService:
-
     MAP_NAME: Final = "long_urls"
 
     def __init__(self, redis_client: redis.Redis):

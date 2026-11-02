@@ -1,4 +1,6 @@
-# flake8: noqa: E501
+# flake8: noqa
+
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -13,7 +15,7 @@ router = APIRouter(tags=["URL Manager"])
 @router.post("/api/v1/urls", response_model=UrlResponse, status_code=status.HTTP_200_OK)
 def shorten_url(
     request: UrlRequest,
-    url_service: UrlShortenerService = Depends(get_url_shortener_service),
+    url_service: Annotated[UrlShortenerService, Depends(get_url_shortener_service)],
 ):
     short_url = url_service.shorten_url(request)
     return UrlResponse(short_url=short_url)
@@ -49,7 +51,7 @@ def shorten_url(
 def redirect_to_long_url(
     url_code: str,
     request: Request,
-    url_service: UrlShortenerService = Depends(get_url_shortener_service),
+    url_service: Annotated[UrlShortenerService, Depends(get_url_shortener_service)],
 ):
     long_url = url_service.get_long_url_from_code(url_code)
 
