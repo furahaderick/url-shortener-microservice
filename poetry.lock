@@ -1284,6 +1284,18 @@ files = [
 ]
 
 [[package]]
+name = "nanoid"
+version = "2.0.0"
+description = "A tiny, secure, URL-friendly, unique string ID generator for Python"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "nanoid-2.0.0-py3-none-any.whl", hash = "sha256:90aefa650e328cffb0893bbd4c236cfd44c48bc1f2d0b525ecc53c3187b653bb"},
+    {file = "nanoid-2.0.0.tar.gz", hash = "sha256:5a80cad5e9c6e9ae3a41fa2fb34ae189f7cb420b2a5d8f82bd9d23466e4efa68"},
+]
+
+[[package]]
 name = "nodeenv"
 version = "1.12.0"
 description = "Node.js virtual environment builder"
@@ -2641,4 +2653,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "ddc5c2578bee137bf22d77f2b88b3d11df586c360c01d6beb9f46b10554b04c1"
+content-hash = "1a068d49068d61d0193d4b5e7df438dd7e62a51af0ed75455a434456f4282b1f"
