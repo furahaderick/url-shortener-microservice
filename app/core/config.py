@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     APP_NAME: str
     APP_SUMMARY: str
     APP_BASE_URL: str
+    APP_DOMAIN: str
 
     # REDIS Vars
     REDIS_HOST: str
