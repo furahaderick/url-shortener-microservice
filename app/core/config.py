@@ -8,9 +8,9 @@ class Settings(BaseSettings):
     APP_DOMAIN: str
 
     # REDIS Vars
-    REDIS_HOST: str
-    REDIS_PORT: int
-    REDIS_DB: int
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
 
     model_config = SettingsConfigDict(
         env_file=".env", extra="ignore", env_file_encoding="utf-8"
