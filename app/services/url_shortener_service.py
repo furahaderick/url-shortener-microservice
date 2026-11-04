@@ -1,7 +1,7 @@
 from typing import Final
 
 import redis
-from fastapi import HTTPException, status
+from app.exceptions import InvalidUrlException
 
 from app.core.config import settings
 from app.schemas.url import UrlRequest
@@ -33,9 +33,7 @@ class UrlShortenerService:
         raw_long_url = self.redis.get(f"url:{code}")
 
         if raw_long_url is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid URL"
-            )
+            raise InvalidUrlException()
 
         long_url = str(raw_long_url)
 
