@@ -1,5 +1,6 @@
-import time
 import logging
+import time
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
@@ -45,4 +46,4 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 processing_time,
             )
 
-            raise e
+            raise
