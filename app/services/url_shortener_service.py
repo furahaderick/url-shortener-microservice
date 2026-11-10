@@ -1,13 +1,11 @@
-from app.exceptions import InvalidUrlException
-
 from app.core.config import settings
+from app.exceptions import InvalidUrlException
 from app.repositories.interfaces import UrlCacheRepository
 from app.schemas.url import UrlRequest
 from app.utils import generate_unique_id
 
 
 class UrlShortenerService:
-
     def __init__(self, repo: UrlCacheRepository):
         self.repo = repo
 

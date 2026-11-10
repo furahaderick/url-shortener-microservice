@@ -1,4 +1,5 @@
 from typing import Final, cast
+
 import redis
 
 from app.repositories.interfaces import UrlCacheRepository
