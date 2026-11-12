@@ -14,20 +14,20 @@ class UrlShortenerService:
     def __init__(self, redis_client: redis.Redis):
         self.redis = redis_client
 
-    def shorten_url(self, req: UrlRequest) -> str:
+    def shorten_url(self, req: UrlRequest) -> tuple[str, bool]:
         # Check if the code for this url already exists
         url = str(req.url)
         existing_id_code = self.redis.hget(UrlShortenerService.MAP_NAME, url)
 
         if existing_id_code is not None:
-            return f"{settings.APP_DOMAIN}/{existing_id_code}"
+            return f"{settings.APP_DOMAIN}/{existing_id_code}", True
 
         unique_id_code = generate_unique_id()
 
         self.redis.set(f"url:{unique_id_code}", url)
         self.redis.hset(UrlShortenerService.MAP_NAME, url, unique_id_code)
 
-        return f"{settings.APP_DOMAIN}/{unique_id_code}"
+        return f"{settings.APP_DOMAIN}/{unique_id_code}", False
 
     def get_long_url_from_code(self, code: str) -> str:
         raw_long_url = self.redis.get(f"url:{code}")
