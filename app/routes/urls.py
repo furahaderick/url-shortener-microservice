@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.dependencies import get_url_shortener_service
@@ -15,9 +15,17 @@ router = APIRouter(tags=["URL Manager"])
 @router.post("/api/v1/urls", response_model=UrlResponse, status_code=status.HTTP_200_OK)
 def shorten_url(
     request: UrlRequest,
+    response: Response,
     url_service: Annotated[UrlShortenerService, Depends(get_url_shortener_service)],
 ):
-    short_url = url_service.shorten_url(request)
+    short_url, is_existing = url_service.shorten_url(request)
+
+    if is_existing:
+        response.status_code = status.HTTP_200_OK
+        response.headers["Idempotent-Replayed"] = "true"
+    else:
+        response.headers["Location"] = short_url
+
     return UrlResponse(short_url=short_url)
 
 
