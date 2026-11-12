@@ -27,6 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libhiredis1.1.0 \
     && rm -rf /var/lib/apt/lists/*
 
+# Create a non-root group and user
+RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
+
 WORKDIR /app
 
 # Copy installed Python packages from builder
@@ -36,8 +39,11 @@ COPY --from=builder /usr/local/lib/python3.12/site-packages \
 # Copy installed executable scripts
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy source code
-COPY --from=builder /app/app ./app
+# Copy source code and set ownership to the non-root user
+COPY --from=builder --chown=appuser:appgroup /app/app ./app
+
+# Switch to the non-root user
+USER appuser
 
 EXPOSE 8000
 
