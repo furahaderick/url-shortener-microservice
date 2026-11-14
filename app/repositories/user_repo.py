@@ -19,6 +19,6 @@ class SqlAlchemyUserRepo(UserRepository):
         user_data = user.model_dump()
         new_user = User(**user_data)
         self.session.add(new_user)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(new_user)
         return new_user

@@ -5,6 +5,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_redis_url, AsyncSessionLocal
+from app.core.uow import SqlAlchemyUnitOfWork
 from app.repositories.interfaces import UrlCacheRepository, UserRepository
 from app.repositories.redis_url_cache_repo import RedisUrlCacheRepo
 from app.repositories.user_repo import SqlAlchemyUserRepo
@@ -23,11 +24,11 @@ def get_redis_client():
 
 async def get_db():
     async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
+        yield session
+
+
+def get_unit_of_work(session: AsyncSession = Depends(get_db)):
+    return SqlAlchemyUnitOfWork(session)
 
 
 def get_url_cache_repository(
@@ -47,5 +48,7 @@ def get_user_repo(session: AsyncSession = Depends(get_db)) -> UserRepository:
     return SqlAlchemyUserRepo(session)
 
 
-def get_user_service(repo: UserRepository = Depends(get_user_repo)) -> UserService:
-    return UserService(repo)
+def get_user_service(
+    uow: SqlAlchemyUnitOfWork = Depends(get_unit_of_work),
+) -> UserService:
+    return UserService(uow)
