@@ -7,7 +7,7 @@ from app.models.short_url_tag import short_url_tag_association
 from app.models.user import User
 from app.models.tag import Tag
 
-from app.utils import MAX_CODE_SIZE
+from app.utils import MAX_CODE_SIZE, generate_unique_code
 
 
 class ShortUrl(Base):
@@ -20,7 +20,7 @@ class ShortUrl(Base):
     original_url: Mapped[str] = mapped_column(String(2048), nullable=False)
 
     short_code: Mapped[str] = mapped_column(
-        String(MAX_CODE_SIZE), index=True, nullable=False
+        String(MAX_CODE_SIZE), index=True, nullable=False, default=generate_unique_code
     )
 
     custom_alias: Mapped[str | None] = mapped_column(
