@@ -16,6 +16,19 @@ services:
       - redis
       - postgres
 
+  redisinsight:
+    image: redis/redisinsight:latest
+
+    container_name: redisinsight
+
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight_data:/data
+
+    depends_on:
+      - redis
+
   redis:
     image: redis:7-alpine
 
@@ -45,5 +58,6 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
 volumes:
+  redisinsight_data:
   redis-data:
   postgres-data:
