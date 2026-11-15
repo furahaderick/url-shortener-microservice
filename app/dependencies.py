@@ -6,10 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_redis_url, AsyncSessionLocal
 from app.core.uow import SqlAlchemyUnitOfWork
-from app.repositories.interfaces import UrlCacheRepository, UserRepository
+from app.repositories.interfaces import (
+    ShortUrlRepository,
+    UrlCacheRepository,
+    UserRepository,
+)
 from app.repositories.redis_url_cache_repo import RedisUrlCacheRepo
+from app.repositories.short_url_repo import SqlAlchemyShortUrlRepo
 from app.repositories.user_repo import SqlAlchemyUserRepo
-from app.services.url_shortener_service import UrlShortenerService
+from app.services.short_url_service import ShortUrlService
 from app.services.user_service import UserService
 
 
@@ -37,12 +42,6 @@ def get_url_cache_repository(
     return RedisUrlCacheRepo(redis_client)
 
 
-def get_url_shortener_service(
-    url_cache_repo: Annotated[UrlCacheRepository, Depends(get_url_cache_repository)],
-) -> UrlShortenerService:
-    return UrlShortenerService(repo=url_cache_repo)
-
-
 # Users
 def get_user_repo(session: AsyncSession = Depends(get_db)) -> UserRepository:
     return SqlAlchemyUserRepo(session)
@@ -52,3 +51,14 @@ def get_user_service(
     uow: SqlAlchemyUnitOfWork = Depends(get_unit_of_work),
 ) -> UserService:
     return UserService(uow)
+
+
+# Short URLs
+def get_short_url_repo(session: AsyncSession = Depends(get_db)) -> ShortUrlRepository:
+    return SqlAlchemyShortUrlRepo(session)
+
+
+def get_short_url_service(
+    uow: SqlAlchemyUnitOfWork = Depends(get_unit_of_work),
+) -> ShortUrlService:
+    return ShortUrlService(uow)
