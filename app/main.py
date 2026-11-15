@@ -3,11 +3,11 @@ import logging
 from fastapi import FastAPI
 
 from app.core.config import settings
-from app.exception_handlers import register_error_handlers
-from app.logger import setup_logging
+from app.core.exception_handlers import register_error_handlers
+from app.core.logger import setup_logging
 from app.middleware.logging_middleware import LoggingMiddleware
-from app.routes.urls import router as url_router
 from app.routes.auth import router as auth_router
+from app.routes.urls import router as url_router
 
 setup_logging()
 logger = logging.getLogger(__name__)

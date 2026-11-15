@@ -18,3 +18,4 @@ repos:
      rev: v2.4.0
      hooks:
         - id: mypy
+          exclude: ^alembic/

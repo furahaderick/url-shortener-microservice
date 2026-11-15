@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Sequence
+from collections.abc import Sequence
 from uuid import UUID
 
 from app.models.short_url import ShortUrl

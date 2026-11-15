@@ -1,19 +1,23 @@
+from typing import Annotated
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from app.dependencies import get_short_url_service
+from app.core.dependencies import get_short_url_service
 from app.schemas.short_url import ShortUrlCreate, ShortUrlResponse, ShortUrlUpdate
 from app.services.short_url_service import ShortUrlService
 
 router = APIRouter(tags=["URL Management"])
+
+ShortUrlServiceDep = Annotated[ShortUrlService, Depends(get_short_url_service)]
 
 
 @router.get("/{short_code}")
 async def redirect(
     short_code: str,
     request: Request,
-    service: ShortUrlService = Depends(get_short_url_service),
+    service: ShortUrlServiceDep,
 ):
     original_url = await service.redirect_to_long_url(short_code)
 
@@ -43,7 +47,7 @@ async def redirect(
 async def create_new_url(
     url: ShortUrlCreate,
     response: Response,
-    service: ShortUrlService = Depends(get_short_url_service),
+    service: ShortUrlServiceDep,
 ):
     new_url, is_existing = await service.create_new_url(url)
 
@@ -57,16 +61,12 @@ async def create_new_url(
 
 
 @router.get("/api/v1/urls", response_model=list[ShortUrlResponse])
-async def list_user_urls(
-    user_id: UUID, service: ShortUrlService = Depends(get_short_url_service)
-):
+async def list_user_urls(user_id: UUID, service: ShortUrlServiceDep):
     return await service.list_user_urls(user_id)
 
 
 @router.get("/api/v1/urls/{short_code}", response_model=ShortUrlResponse)
-async def retrieve_url_details(
-    short_code: str, service: ShortUrlService = Depends(get_short_url_service)
-):
+async def retrieve_url_details(short_code: str, service: ShortUrlServiceDep):
     return await service.get_url_details(short_code)
 
 
@@ -74,13 +74,11 @@ async def retrieve_url_details(
 async def update_url(
     short_code: str,
     url: ShortUrlUpdate,
-    service: ShortUrlService = Depends(get_short_url_service),
+    service: ShortUrlServiceDep,
 ):
     return await service.update_url(short_code, url)
 
 
 @router.delete("/api/v1/urls/{short_code}", status_code=status.HTTP_204_NO_CONTENT)
-async def deactivate_url(
-    short_code: str, service: ShortUrlService = Depends(get_short_url_service)
-):
+async def deactivate_url(short_code: str, service: ShortUrlServiceDep):
     await service.deactivate_url(short_code)
