@@ -1,9 +1,11 @@
-from datetime import datetime, timezone
-from typing import Sequence
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
+
 from app.models.short_url import ShortUrl
 from app.repositories.interfaces import ShortUrlRepository
 from app.schemas.short_url import ShortUrlCreate
@@ -14,7 +16,7 @@ class SqlAlchemyShortUrlRepo(ShortUrlRepository):
         self.session = session
 
     async def active_urls(self) -> list[ShortUrl]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         stmt = (
             select(ShortUrl)
@@ -29,7 +31,7 @@ class SqlAlchemyShortUrlRepo(ShortUrlRepository):
         return list(result.all())
 
     async def expired_urls(self) -> list[ShortUrl]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         stmt = (
             select(ShortUrl)

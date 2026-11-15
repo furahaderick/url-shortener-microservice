@@ -1,14 +1,15 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import update
-from app.core.uow import SqlAlchemyUnitOfWork
-from app.exceptions import (
+
+from app.core.exceptions import (
     UrlExpiredException,
     UrlInactiveException,
     UrlNotFoundException,
     UserNotFoundException,
 )
+from app.core.uow import SqlAlchemyUnitOfWork
 from app.models.short_url import ShortUrl
 from app.schemas.short_url import ShortUrlCreate, ShortUrlUpdate
 
@@ -34,7 +35,6 @@ class ShortUrlService:
 
     async def create_new_url(self, url: ShortUrlCreate):
         async with self.uow:
-
             # Check if user exists
             existing_user = await self.uow.users.get_user_by_id(url.owner_id)
 
@@ -116,7 +116,7 @@ class ShortUrlService:
 
             if (
                 existing_url.expires_at is not None
-                and existing_url.expires_at <= datetime.now(timezone.utc)
+                and existing_url.expires_at <= datetime.now(UTC)
             ):
                 raise UrlExpiredException()
 
