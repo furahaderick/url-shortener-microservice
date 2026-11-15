@@ -1,5 +1,5 @@
+from app.core.exceptions import UserAlreadyExistsException
 from app.core.uow import SqlAlchemyUnitOfWork
-from app.exceptions import UserAlreadyExistsException
 from app.schemas.user import UserCreate
 
 

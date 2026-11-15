@@ -1,8 +1,10 @@
-from enum import StrEnum
 import uuid
+from enum import StrEnum
 
-from sqlalchemy import Boolean, String, Enum as SqlEnum, text
+from sqlalchemy import Boolean, String, text
+from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.core.database import Base
 
 

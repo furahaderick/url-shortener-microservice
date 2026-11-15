@@ -1,4 +1,5 @@
 import uuid
+
 from pydantic import BaseModel, EmailStr
 
 from app.models.user import UserTier

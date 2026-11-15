@@ -1,13 +1,14 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
+
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.core.database import Base
-from app.models.short_url_tag import short_url_tag_association
-from app.models.user import User
-from app.models.tag import Tag
 
-from app.utils import MAX_CODE_SIZE, generate_unique_code
+from app.core.database import Base
+from app.core.utils import MAX_CODE_SIZE, generate_unique_code
+from app.models.short_url_tag import short_url_tag_association
+from app.models.tag import Tag
+from app.models.user import User
 
 
 class ShortUrl(Base):

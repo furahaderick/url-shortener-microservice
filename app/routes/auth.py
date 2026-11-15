@@ -1,18 +1,21 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, status
 
-from app.dependencies import get_user_service
+from app.core.dependencies import get_user_service
 from app.schemas.user import UserCreate, UserResponse
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 
 
+UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+
+
 @router.post(
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
-async def create_new_account(
-    user: UserCreate, user_service: UserService = Depends(get_user_service)
-):
+async def create_new_account(user: UserCreate, user_service: UserServiceDep):
     return await user_service.create_new_user(user)
 
 

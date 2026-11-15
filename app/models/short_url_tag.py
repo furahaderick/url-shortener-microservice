@@ -2,7 +2,6 @@ from sqlalchemy import Column, ForeignKey, Table
 
 from app.core.database import Base
 
-
 short_url_tag_association = Table(
     "short_url_tag_association",
     Base.metadata,
