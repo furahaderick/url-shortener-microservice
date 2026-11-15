@@ -1,73 +1,76 @@
-# flake8: noqa
-
-from typing import Annotated
-
+from uuid import UUID
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from app.dependencies import get_url_shortener_service
-from app.schemas.url import UrlRequest, UrlResponse
-from app.services.url_shortener_service import UrlShortenerService
+from app.dependencies import get_short_url_service
+from app.schemas.short_url import ShortUrlCreate, ShortUrlResponse, ShortUrlUpdate
+from app.services.short_url_service import ShortUrlService
 
-router = APIRouter(tags=["URL Manager"])
-
-
-@router.post("/api/v1/urls", response_model=UrlResponse, status_code=status.HTTP_200_OK)
-def shorten_url(
-    request: UrlRequest,
-    url_service: Annotated[UrlShortenerService, Depends(get_url_shortener_service)],
-):
-    short_url = url_service.shorten_url(request)
-    return UrlResponse(short_url=short_url)
+router = APIRouter(tags=["URL Management"])
 
 
-@router.get(
-    "/{url_code}",
-    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
-    response_class=RedirectResponse,
-    responses={
-        307: {
-            "description": "Redirects successfully to the target long URL.",
-            "headers": {
-                "Location": {
-                    "description": "The destination long URL.",
-                    "schema": {"type": "string"},
-                }
-            },
-        },
-        200: {
-            "description": "Returned when requested via Swagger UI to prevent CORS fetch errors.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "status": "success",
-                        "redirect_to": "https://example.com",
-                    }
-                }
-            },
-        },
-    },
-)
-def redirect_to_long_url(
-    url_code: str,
+@router.get("/{short_code}")
+async def redirect(
+    short_code: str,
     request: Request,
-    url_service: Annotated[UrlShortenerService, Depends(get_url_shortener_service)],
+    service: ShortUrlService = Depends(get_short_url_service),
 ):
-    long_url = url_service.get_long_url_from_code(url_code)
+    original_url = await service.redirect_to_long_url(short_code)
 
-    # Detect if the request is coming from the Swagger UI docs page
-    # (Checking the 'referer' header or checking if a custom test flag is passed)
+    # Detect requests coming from Swagger UI or ReDoc
     referer = request.headers.get("referer", "")
 
     if "/docs" in referer or "/redoc" in referer:
-        # Swagger users see a clean green 200 OK with the final destination!
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
                 "status": "success",
                 "message": "Redirect intercepted for SwaggerUI or Redoc compatibility.",
-                "redirect_to": long_url,
+                "redirect_to": original_url,
             },
         )
 
-    return RedirectResponse(url=long_url)
+    # Normal browser redirect
+    return RedirectResponse(
+        url=original_url,
+        status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    )
+
+
+@router.post(
+    "/api/v1/urls", response_model=ShortUrlResponse, status_code=status.HTTP_201_CREATED
+)
+async def create_new_url(
+    url: ShortUrlCreate, service: ShortUrlService = Depends(get_short_url_service)
+):
+    return await service.create_new_url(url)
+
+
+@router.get("/api/v1/urls", response_model=list[ShortUrlResponse])
+async def list_user_urls(
+    user_id: UUID, service: ShortUrlService = Depends(get_short_url_service)
+):
+    return await service.list_user_urls(user_id)
+
+
+@router.get("/api/v1/urls/{short_code}", response_model=ShortUrlResponse)
+async def retrieve_url_details(
+    short_code: str, service: ShortUrlService = Depends(get_short_url_service)
+):
+    return await service.get_url_details(short_code)
+
+
+@router.put("/api/v1/urls/{short_code}", response_model=ShortUrlResponse)
+async def update_url(
+    short_code: str,
+    url: ShortUrlUpdate,
+    service: ShortUrlService = Depends(get_short_url_service),
+):
+    return await service.update_url(short_code, url)
+
+
+@router.delete("/api/v1/urls/{short_code}", status_code=status.HTTP_204_NO_CONTENT)
+async def deactivate_url(
+    short_code: str, service: ShortUrlService = Depends(get_short_url_service)
+):
+    await service.deactivate_url(short_code)
