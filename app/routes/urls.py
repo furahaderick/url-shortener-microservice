@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.dependencies import get_short_url_service
@@ -41,9 +41,19 @@ async def redirect(
     "/api/v1/urls", response_model=ShortUrlResponse, status_code=status.HTTP_201_CREATED
 )
 async def create_new_url(
-    url: ShortUrlCreate, service: ShortUrlService = Depends(get_short_url_service)
+    url: ShortUrlCreate,
+    response: Response,
+    service: ShortUrlService = Depends(get_short_url_service),
 ):
-    return await service.create_new_url(url)
+    new_url, is_existing = await service.create_new_url(url)
+
+    if is_existing:
+        response.status_code = status.HTTP_200_OK
+        response.headers["Idempotent-Replayed"] = "true"
+    else:
+        response.headers["Location"] = f"/{new_url.short_code}"
+
+    return new_url
 
 
 @router.get("/api/v1/urls", response_model=list[ShortUrlResponse])

@@ -46,7 +46,7 @@ class ShortUrlService:
             existing_url = await self.uow.urls.find_by_original_url(original_url)
 
             if existing_url is not None:
-                return existing_url
+                return existing_url, True
 
             # unique_code is generated automatically by default
             new_url = await self.uow.urls.add_url(url)
@@ -54,7 +54,7 @@ class ShortUrlService:
             # Commit
             await self.uow.commit()
 
-            return new_url
+            return new_url, False
 
     async def list_user_urls(self, user_id: UUID):
         async with self.uow:
