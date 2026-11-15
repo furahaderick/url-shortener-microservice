@@ -3,10 +3,11 @@ import logging
 from fastapi import FastAPI
 
 from app.core.config import settings
-from app.routes.urls import router as url_router
 from app.exception_handlers import register_error_handlers
 from app.logger import setup_logging
 from app.middleware.logging_middleware import LoggingMiddleware
+from app.routes.urls import router as url_router
+from app.routes.auth import router as auth_router
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -24,4 +25,5 @@ def get_app_status():
     return {"Status": "Alive"}
 
 
+app.include_router(auth_router)
 app.include_router(url_router)
