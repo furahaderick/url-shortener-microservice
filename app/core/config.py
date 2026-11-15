@@ -12,6 +12,13 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
 
+    # POSTGRES Vars
+    PG_HOST: str
+    PG_USER: str
+    PG_PASSWORD: str
+    PG_PORT: int
+    PG_DBNAME: str
+
     model_config = SettingsConfigDict(
         env_file=".env", extra="ignore", env_file_encoding="utf-8"
     )
