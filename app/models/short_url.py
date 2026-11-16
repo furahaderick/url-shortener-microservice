@@ -1,11 +1,19 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.core.utils import MAX_CODE_SIZE, generate_unique_code
+from app.core.utils import MAX_CODE_SIZE
 from app.models.short_url_tag import short_url_tag_association
 from app.models.tag import Tag
 from app.models.user import User
@@ -14,6 +22,8 @@ from app.models.user import User
 class ShortUrl(Base):
     __tablename__ = "short_urls"
 
+    __table_args__ = (UniqueConstraint("short_code", name="uq_short_urls_short_code"),)
+
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True, index=True, default=uuid.uuid4
     )
@@ -21,7 +31,7 @@ class ShortUrl(Base):
     original_url: Mapped[str] = mapped_column(String(2048), nullable=False)
 
     short_code: Mapped[str] = mapped_column(
-        String(MAX_CODE_SIZE), index=True, nullable=False, default=generate_unique_code
+        String(MAX_CODE_SIZE), index=True, nullable=False
     )
 
     custom_alias: Mapped[str | None] = mapped_column(
