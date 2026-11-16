@@ -3,8 +3,7 @@ from collections.abc import Sequence
 from uuid import UUID
 
 from app.models.short_url import ShortUrl
-from app.schemas.short_url import ShortUrlCreate
-from app.schemas.user import UserCreate
+from app.models.user import User
 
 
 class UrlCacheRepository(ABC):
@@ -35,11 +34,11 @@ class ShortUrlRepository(ABC):
         """Return URLs ordered by click count (highest first)."""
 
     @abstractmethod
-    async def find_by_original_url(self, original_url: str):
+    async def find_by_original_url(self, original_url: str) -> ShortUrl | None:
         """Returns a url queried by its original, long url"""
 
     @abstractmethod
-    async def add_url(self, url: ShortUrlCreate):
+    async def add_url(self, url: ShortUrl) -> ShortUrl:
         """Returns a newly created url"""
 
     @abstractmethod
@@ -47,19 +46,19 @@ class ShortUrlRepository(ABC):
         """Returns urls queried by user id"""
 
     @abstractmethod
-    async def get_url_by_short_code(self, short_code: str):
+    async def get_url_by_short_code(self, short_code: str) -> ShortUrl | None:
         """Returns a url queried by its id"""
 
     @abstractmethod
-    async def update_url(self, url: ShortUrl, url_data: dict):
+    async def update_url(self, url: ShortUrl, url_data: dict) -> ShortUrl:
         """Updates a url"""
 
 
 class UserRepository(ABC):
     @abstractmethod
-    async def get_user_by_email(self, email: str):
+    async def get_user_by_email(self, email: str) -> User | None:
         """Returns a user queried by email"""
 
     @abstractmethod
-    async def add_user(self, user: UserCreate):
+    async def add_user(self, user: User) -> User:
         """Returns a newly created user"""
