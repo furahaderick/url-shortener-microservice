@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import update
+from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import (
     UrlExpiredException,
@@ -10,6 +11,7 @@ from app.core.exceptions import (
     UserNotFoundException,
 )
 from app.core.uow import SqlAlchemyUnitOfWork
+from app.core.utils import generate_unique_code
 from app.models.short_url import ShortUrl
 from app.schemas.short_url import ShortUrlCreate, ShortUrlUpdate
 
@@ -33,31 +35,63 @@ class ShortUrlService:
             popular_urls = await self.uow.urls.popular_urls()
             return popular_urls
 
-    async def create_new_url(self, url: ShortUrlCreate):
+    # Create new url with retry mechanism for duplicate short code generation
+    async def create_new_url(self, url: ShortUrlCreate, max_retries: int = 5):
+
         async with self.uow:
             # Check if user exists
             existing_user = await self.uow.users.get_user_by_id(url.owner_id)
-
             if existing_user is None:
                 raise UserNotFoundException()
 
             # Check if long url already exists
             original_url = str(url.original_url)
             existing_url = await self.uow.urls.find_by_original_url(original_url)
-
             if existing_url is not None:
                 return existing_url, True
 
-            # unique_code is generated automatically by default
-
             url_data = url.model_dump(exclude={"original_url"})
-            db_url = ShortUrl(original_url=str(url.original_url), **url_data)
-            new_url = await self.uow.urls.add_url(db_url)
 
-            # Commit
-            await self.uow.commit()
+            # Enter the short_code generation retry loop
+            for attempt in range(max_retries):
+                # Use an isolated async savepoint to avoid losing session state
+                async with self.uow.session.begin_nested():
+                    try:
+                        # Generate a fresh unique string code
+                        code = generate_unique_code()
 
-            return new_url, False
+                        # Create db url with original url and short code
+                        db_url = ShortUrl(
+                            original_url=original_url, short_code=code, **url_data
+                        )
+
+                        new_url = await self.uow.urls.add_url(db_url)
+
+                        # Commit if successful
+                        await self.uow.commit()
+                        return new_url, False
+
+                    except IntegrityError as exc:
+                        # The nested context manager rolls back ONLY to the savepoint.
+                        # The parent transaction remains untouched.
+
+                        # Extract psycopg's constraint metadata
+                        orig_exception = getattr(exc, "orig", None)
+                        diag = getattr(orig_exception, "diag", None)
+                        constraint_name = getattr(diag, "constraint_name", None)
+
+                        # Verify the error belongs strictly to our short_code constraint
+                        if constraint_name == "uq_short_urls_short_code":
+                            if attempt == max_retries - 1:
+                                raise  # Out of retries, raise up the final error
+                            continue  # Collision caught safely. Try the loop again.
+
+                        # Re-raise immediately if it's an unrelated constraint failure
+                        raise
+
+            raise RuntimeError(
+                "Unable to generate a unique short code after maximum retries"
+            )
 
     async def list_user_urls(self, user_id: UUID):
         async with self.uow:
