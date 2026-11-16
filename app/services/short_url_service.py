@@ -49,7 +49,10 @@ class ShortUrlService:
                 return existing_url, True
 
             # unique_code is generated automatically by default
-            new_url = await self.uow.urls.add_url(url)
+
+            url_data = url.model_dump(exclude={"original_url"})
+            db_url = ShortUrl(original_url=str(url.original_url), **url_data)
+            new_url = await self.uow.urls.add_url(db_url)
 
             # Commit
             await self.uow.commit()
