@@ -7,6 +7,7 @@ from app.models.user import UserTier
 
 class UserCreate(BaseModel):
     email: EmailStr
+    password_hash: str
 
 
 class UserResponse(BaseModel):
