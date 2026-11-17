@@ -1,16 +1,12 @@
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from app.core.dependencies import get_short_url_service
+from app.core.dependencies import ShortUrlServiceDep
 from app.schemas.short_url import ShortUrlCreate, ShortUrlResponse, ShortUrlUpdate
-from app.services.short_url_service import ShortUrlService
 
 router = APIRouter(tags=["URL Management"])
-
-ShortUrlServiceDep = Annotated[ShortUrlService, Depends(get_short_url_service)]
 
 
 @router.get("/{short_code}")

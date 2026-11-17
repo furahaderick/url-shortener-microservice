@@ -1,15 +1,9 @@
-from typing import Annotated
+from fastapi import APIRouter, status
 
-from fastapi import APIRouter, Depends, status
-
-from app.core.dependencies import get_user_service
+from app.core.dependencies import UserServiceDep
 from app.schemas.user import UserCreate, UserResponse
-from app.services.user_service import UserService
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
-
-
-UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 
 
 @router.post(
