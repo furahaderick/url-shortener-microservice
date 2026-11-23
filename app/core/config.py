@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     PG_PORT: int
     PG_DBNAME: str
 
+    # SECURITY Vars
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_DAYS: int
+    REFRESH_TOKEN_EXPIRE_DAYS: int
+
     model_config = SettingsConfigDict(
         env_file=".env", extra="ignore", env_file_encoding="utf-8"
     )
