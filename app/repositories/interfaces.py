@@ -76,7 +76,7 @@ class UserRepository(ABC):
 
 class ClickRepository(ABC):
     @abstractmethod
-    async def add_click(self, click: Click) -> Click:
+    async def add_click(self, click: Click) -> None:
         """Returns a newly created click"""
 
     @abstractmethod

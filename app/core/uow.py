@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.repositories.click_repo import SqlAlchemyClickRepo
 from app.repositories.short_url_repo import SqlAlchemyShortUrlRepo
 from app.repositories.user_repo import SqlAlchemyUserRepo
 
@@ -9,6 +10,7 @@ class SqlAlchemyUnitOfWork:
         self.session = session
         self.users = SqlAlchemyUserRepo(session)
         self.urls = SqlAlchemyShortUrlRepo(session)
+        self.clicks = SqlAlchemyClickRepo(session)
 
     async def __aenter__(self):
         return self

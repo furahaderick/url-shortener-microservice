@@ -10,6 +10,7 @@ from app.core.dependencies import AsyncSessionDep
 from app.core.exception_handlers import register_error_handlers
 from app.core.logger import setup_logging
 from app.middleware.logging_middleware import LoggingMiddleware
+from app.routes.analytics import router as analytics_router
 from app.routes.auth import router as auth_router
 from app.routes.urls import router as url_router
 
@@ -25,7 +26,7 @@ register_error_handlers(app)
 
 
 @app.get("/health", tags=["Health Check"])
-async def get_app_status(session: AsyncSessionDep):
+async def get_app_status(session: AsyncSessionDep) -> JSONResponse:
     services = {
         "app": {"status": "healthy"},
         "postgres": {"status": "healthy"},
@@ -52,3 +53,4 @@ async def get_app_status(session: AsyncSessionDep):
 
 app.include_router(auth_router)
 app.include_router(url_router)
+app.include_router(analytics_router)
