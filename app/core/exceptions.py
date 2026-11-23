@@ -45,3 +45,39 @@ class UrlExpiredException(AppException):
         self, message: str = "URL has expired", error_code: str = "URL_EXPIRED"
     ):
         super().__init__(message, error_code)
+
+
+class InvalidCredentialsException(AppException):
+    def __init__(
+        self,
+        message: str = "Wrong email or password",
+        error_code: str = "INVALID_CREDENTIALS",
+    ):
+        super().__init__(message, error_code)
+
+
+class InvalidTokenException(AppException):
+    def __init__(
+        self,
+        message: str = "Invalid or Expired token",
+        error_code: str = "INVALID_TOKEN",
+    ):
+        super().__init__(message, error_code)
+
+
+class InsufficientPermissionsException(AppException):
+    def __init__(
+        self,
+        message: str = "Insufficient permissions",
+        error_code: str = "INSUFFICIENT_PERMISSIONS",
+    ):
+        super().__init__(message, error_code)
+
+
+class InvalidRedirectException(AppException):
+    def __init__(
+        self,
+        message: str = "Invalid redirect destination.",
+        error_code: str = "INVALID_REDIRECT",
+    ):
+        super().__init__(message, error_code)
