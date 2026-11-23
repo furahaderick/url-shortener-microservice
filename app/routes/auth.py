@@ -1,7 +1,8 @@
 from fastapi import APIRouter, status
 
-from app.core.dependencies import UserServiceDep
-from app.schemas.user import UserCreate, UserResponse
+from app.core.dependencies import CurrentUserDep, UserServiceDep
+from app.schemas.token import RefreshTokenRequest, Token
+from app.schemas.user import LoginCredentials, UserCreate, UserResponse
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 
@@ -13,11 +14,16 @@ async def create_new_account(user: UserCreate, user_service: UserServiceDep):
     return await user_service.create_new_user(user)
 
 
-@router.post("/login", status_code=status.HTTP_200_OK)
-def login():
-    return {"access_token": "SOME_ACCESS_TOKEN", "refresh_token": "SOME_REFRESH_TOKEN"}
+@router.post("/login", status_code=status.HTTP_200_OK, response_model=Token)
+async def login(credentials: LoginCredentials, user_service: UserServiceDep):
+    return await user_service.login_user(credentials=credentials)
 
 
-@router.post("/refresh", status_code=status.HTTP_200_OK)
-def refresh_access_token():
-    return {"access_token": "SOME_ACCESS_TOKEN", "refresh_token": "SOME_REFRESH_TOKEN"}
+@router.post("/refresh", status_code=status.HTTP_200_OK, response_model=Token)
+async def refresh_access_token(req: RefreshTokenRequest, user_service: UserServiceDep):
+    return await user_service.refresh_access_token(req.refresh_token)
+
+
+@router.get("/me", response_model=UserResponse)
+async def read_current_user(current_user: CurrentUserDep):
+    return current_user
