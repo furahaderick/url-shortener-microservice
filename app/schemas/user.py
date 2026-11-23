@@ -7,7 +7,7 @@ from app.models.user import UserTier
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password_hash: str
+    password: str
 
 
 class UserResponse(BaseModel):
@@ -17,3 +17,8 @@ class UserResponse(BaseModel):
     tier: UserTier
 
     model_config = {"from_attributes": True}
+
+
+class LoginCredentials(BaseModel):
+    email: EmailStr
+    password: str
