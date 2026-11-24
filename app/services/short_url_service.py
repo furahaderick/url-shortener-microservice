@@ -5,14 +5,18 @@ from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import (
+    AliasAlreadyExistsException,
+    InsufficientPermissionsException,
     UrlExpiredException,
     UrlInactiveException,
     UrlNotFoundException,
 )
+from app.core.tier_entitlements import TierEntitlements
 from app.core.uow import SqlAlchemyUnitOfWork
 from app.core.utils import generate_unique_code
 from app.models.click import Click
 from app.models.short_url import ShortUrl
+from app.models.user import User
 from app.schemas.short_url import ShortUrlCreate, ShortUrlUpdate
 
 
@@ -37,30 +41,62 @@ class ShortUrlService:
 
     # Create new url with retry mechanism for duplicate short code generation
     async def create_new_url(
-        self, user_id: UUID, url: ShortUrlCreate, max_retries: int = 5
+        self,
+        entitlements: TierEntitlements,
+        user: User,
+        url: ShortUrlCreate,
+        max_retries: int = 5,
     ):
+
+        # Check non-db tier entitlements
+        if url.custom_alias is not None and not entitlements.allow_custom_aliases:
+            raise InsufficientPermissionsException(
+                message="Custom aliases are only available on Premium tiers."
+            )
+
         async with self.uow:
+            # Lock user row to handle concurrent requests that create a url
+            await self.uow.users.lock_user_row(user.id)
+
             # Check if long url already exists
             original_url = str(url.original_url)
             existing_url = await self.uow.urls.find_by_original_url_and_user_id(
-                original_url, user_id
+                original_url, user.id
             )
             if existing_url is not None:
                 return existing_url, True
 
+            # Check maximum active urls limit
+            if entitlements.max_active_urls is not None:
+                active_count = await self.uow.urls.count_active_urls_by_user_id(user.id)
+                if active_count >= entitlements.max_active_urls:
+                    raise InsufficientPermissionsException(
+                        message=(
+                            "You have reached your limit of "
+                            f"{entitlements.max_active_urls} active URLs. "
+                            "Upgrade to Premium for unlimited URLs."
+                        )
+                    )
+
             url_data = url.model_dump(exclude={"original_url"})
+
+            # Check if custom alias is already taken
+            if url.custom_alias is not None:
+                existing_alias = await self.uow.urls.get_url_by_alias(url.custom_alias)
+                if existing_alias is not None:
+                    raise AliasAlreadyExistsException()
 
             # Enter the short_code generation retry loop
             for attempt in range(max_retries):
                 # Use an isolated async savepoint to avoid losing session state
-                async with self.uow.session.begin_nested():
-                    try:
+                try:
+                    async with self.uow.session.begin_nested():
                         # Generate a fresh unique string code
                         code = generate_unique_code()
 
                         # Create db url with original url and short code
                         db_url = ShortUrl(
-                            owner_id=user_id,
+                            owner_id=user.id,
                             original_url=original_url,
                             short_code=code,
                             **url_data,
@@ -68,27 +104,27 @@ class ShortUrlService:
 
                         new_url = await self.uow.urls.add_url(db_url)
 
-                        # Commit if successful
-                        await self.uow.commit()
-                        return new_url, False
+                    # Commit if successfully
+                    await self.uow.commit()
+                    return new_url, False
 
-                    except IntegrityError as exc:
-                        # The nested context manager rolls back ONLY to the savepoint.
-                        # The parent transaction remains untouched.
+                except IntegrityError as exc:
+                    # The nested context manager rolls back ONLY to the savepoint.
+                    # The parent transaction remains untouched.
 
-                        # Extract psycopg's constraint metadata
-                        orig_exception = getattr(exc, "orig", None)
-                        diag = getattr(orig_exception, "diag", None)
-                        constraint_name = getattr(diag, "constraint_name", None)
+                    # Extract psycopg's constraint metadata
+                    orig_exception = getattr(exc, "orig", None)
+                    diag = getattr(orig_exception, "diag", None)
+                    constraint_name = getattr(diag, "constraint_name", None)
 
-                        # Verify the error belongs strictly to our short_code constraint
-                        if constraint_name == "uq_short_urls_short_code":
-                            if attempt == max_retries - 1:
-                                raise  # Out of retries, raise up the final error
-                            continue  # Collision caught safely. Try the loop again.
+                    # Verify the error belongs strictly to our short_code constraint
+                    if constraint_name == "uq_short_urls_short_code":
+                        if attempt == max_retries - 1:
+                            raise  # Out of retries, raise up the final error
+                        continue  # Collision caught safely. Try the loop again.
 
-                        # Re-raise immediately if it's an unrelated constraint failure
-                        raise
+                    # Re-raise immediately if it's an unrelated constraint failure
+                    raise
 
             raise RuntimeError(
                 "Unable to generate a unique short code after maximum retries"
@@ -108,7 +144,19 @@ class ShortUrlService:
 
             return url
 
-    async def update_url(self, short_code: str, url: ShortUrlUpdate, user_id: UUID):
+    async def update_url(
+        self,
+        entitlements: TierEntitlements,
+        short_code: str,
+        url: ShortUrlUpdate,
+        user_id: UUID,
+    ):
+        # Check non-db tier entitlements
+        if url.custom_alias is not None and not entitlements.allow_custom_aliases:
+            raise InsufficientPermissionsException(
+                message="Custom aliases are only available on Premium tiers."
+            )
+
         async with self.uow:
             existing_url = await self.uow.urls.get_url_by_short_code_and_user_id(
                 short_code, user_id

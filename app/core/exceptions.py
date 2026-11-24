@@ -81,3 +81,12 @@ class InvalidRedirectException(AppException):
         error_code: str = "INVALID_REDIRECT",
     ):
         super().__init__(message, error_code)
+
+
+class AliasAlreadyExistsException(AppException):
+    def __init__(
+        self,
+        message: str = "Custom alias name is already taken.",
+        error_code: str = "ALIAS_ALREADY_EXISTS",
+    ):
+        super().__init__(message, error_code)

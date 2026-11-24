@@ -63,6 +63,14 @@ class ShortUrlRepository(ABC):
     async def update_url(self, url: ShortUrl, url_data: dict) -> ShortUrl:
         """Updates a url"""
 
+    @abstractmethod
+    async def count_active_urls_by_user_id(self, user_id: UUID) -> int:
+        """Counts all active urls owned by a user with user_id"""
+
+    @abstractmethod
+    async def get_url_by_alias(self, custom_alias: str) -> ShortUrl | None:
+        """Returns a url queried by its custom alias"""
+
 
 class UserRepository(ABC):
     @abstractmethod
@@ -72,6 +80,10 @@ class UserRepository(ABC):
     @abstractmethod
     async def add_user(self, user: User) -> User:
         """Returns a newly created user"""
+
+    @abstractmethod
+    async def lock_user_row(self, user_id: UUID) -> None:
+        """Locks a user row with user_id"""
 
 
 class ClickRepository(ABC):

@@ -3,7 +3,12 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from app.core.dependencies import CurrentUserDep, ShortUrlServiceDep, require_tiers
+from app.core.dependencies import (
+    CurrentUserDep,
+    ShortUrlServiceDep,
+    UserEntitlementsDep,
+    require_tiers,
+)
 from app.core.exceptions import InvalidRedirectException
 from app.models.user import UserTier
 from app.schemas.short_url import (
@@ -93,8 +98,9 @@ async def create_new_url(
     response: Response,
     service: ShortUrlServiceDep,
     current_user: CurrentUserDep,
+    entitlements: UserEntitlementsDep,
 ):
-    new_url, is_existing = await service.create_new_url(current_user.id, url)
+    new_url, is_existing = await service.create_new_url(entitlements, current_user, url)
 
     if is_existing:
         response.status_code = status.HTTP_200_OK
@@ -123,8 +129,9 @@ async def update_url(
     url: ShortUrlUpdate,
     service: ShortUrlServiceDep,
     current_user: CurrentUserDep,
+    entitlements: UserEntitlementsDep,
 ):
-    return await service.update_url(short_code, url, current_user.id)
+    return await service.update_url(entitlements, short_code, url, current_user.id)
 
 
 @router.delete("/api/v1/urls/{short_code}", status_code=status.HTTP_204_NO_CONTENT)

@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from app.core.exceptions import (
+    AliasAlreadyExistsException,
     InsufficientPermissionsException,
     InvalidCredentialsException,
     InvalidRedirectException,
@@ -75,9 +76,8 @@ async def invalid_token_handler(_: Request, exc: Exception) -> JSONResponse:
 
 async def insufficient_permissions_handler(_: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content={"success": False, "code": "UNAUTHORIZED", "message": str(exc)},
-        headers={"WWW-Authenticate": "Bearer"},
+        status_code=status.HTTP_403_FORBIDDEN,
+        content={"success": False, "code": "FORBIDDEN", "message": str(exc)},
     )
 
 
@@ -85,6 +85,13 @@ async def invalid_redirect_handler(_: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_403_FORBIDDEN,
         content={"success": False, "code": "FORBIDDEN", "message": str(exc)},
+    )
+
+
+async def alias_already_exists_handler(_: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={"success": False, "code": "CONFLICT", "message": str(exc)},
     )
 
 
@@ -101,3 +108,4 @@ def register_error_handlers(app: FastAPI) -> None:
         InsufficientPermissionsException, insufficient_permissions_handler
     )
     app.add_exception_handler(InvalidRedirectException, invalid_redirect_handler)
+    app.add_exception_handler(AliasAlreadyExistsException, alias_already_exists_handler)
