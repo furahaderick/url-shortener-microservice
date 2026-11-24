@@ -8,10 +8,10 @@ from app.core.exceptions import (
     UrlExpiredException,
     UrlInactiveException,
     UrlNotFoundException,
-    UserNotFoundException,
 )
 from app.core.uow import SqlAlchemyUnitOfWork
 from app.core.utils import generate_unique_code
+from app.models.click import Click
 from app.models.short_url import ShortUrl
 from app.schemas.short_url import ShortUrlCreate, ShortUrlUpdate
 
@@ -36,17 +36,15 @@ class ShortUrlService:
             return popular_urls
 
     # Create new url with retry mechanism for duplicate short code generation
-    async def create_new_url(self, url: ShortUrlCreate, max_retries: int = 5):
-
+    async def create_new_url(
+        self, user_id: UUID, url: ShortUrlCreate, max_retries: int = 5
+    ):
         async with self.uow:
-            # Check if user exists
-            existing_user = await self.uow.users.get_user_by_id(url.owner_id)
-            if existing_user is None:
-                raise UserNotFoundException()
-
             # Check if long url already exists
             original_url = str(url.original_url)
-            existing_url = await self.uow.urls.find_by_original_url(original_url)
+            existing_url = await self.uow.urls.find_by_original_url_and_user_id(
+                original_url, user_id
+            )
             if existing_url is not None:
                 return existing_url, True
 
@@ -62,7 +60,10 @@ class ShortUrlService:
 
                         # Create db url with original url and short code
                         db_url = ShortUrl(
-                            original_url=original_url, short_code=code, **url_data
+                            owner_id=user_id,
+                            original_url=original_url,
+                            short_code=code,
+                            **url_data,
                         )
 
                         new_url = await self.uow.urls.add_url(db_url)
@@ -95,27 +96,23 @@ class ShortUrlService:
 
     async def list_user_urls(self, user_id: UUID):
         async with self.uow:
-            # Check if user exists
-            existing_user = await self.uow.users.get_user_by_id(user_id)
-
-            if existing_user is None:
-                raise UserNotFoundException()
-
             return await self.uow.urls.get_user_urls(user_id)
 
-    async def get_url_details(self, short_code: str):
+    async def get_url_details(self, short_code: str, user_id: UUID):
         async with self.uow:
-            # TODO: Perform ownership check
-            url = await self.uow.urls.get_url_by_short_code(short_code)
+            url = await self.uow.urls.get_url_by_short_code_and_user_id(
+                short_code, user_id
+            )
             if url is None:
                 raise UrlNotFoundException()
 
             return url
 
-    async def update_url(self, short_code: str, url: ShortUrlUpdate):
+    async def update_url(self, short_code: str, url: ShortUrlUpdate, user_id: UUID):
         async with self.uow:
-            # TODO: Perform ownership check
-            existing_url = await self.uow.urls.get_url_by_short_code(short_code)
+            existing_url = await self.uow.urls.get_url_by_short_code_and_user_id(
+                short_code, user_id
+            )
             if existing_url is None:
                 raise UrlNotFoundException()
 
@@ -127,10 +124,11 @@ class ShortUrlService:
 
             return updated_url
 
-    async def deactivate_url(self, short_code: str):
+    async def deactivate_url(self, short_code: str, user_id: UUID):
         async with self.uow:
-            # TODO: Perform ownership check
-            existing_url = await self.uow.urls.get_url_by_short_code(short_code)
+            existing_url = await self.uow.urls.get_url_by_short_code_and_user_id(
+                short_code, user_id
+            )
             if existing_url is None:
                 raise UrlNotFoundException()
 
@@ -142,7 +140,15 @@ class ShortUrlService:
             # Optional return
             return existing_url
 
-    async def redirect_to_long_url(self, short_code: str):
+    async def redirect_to_long_url(
+        self,
+        short_code: str,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        referrer: str | None = None,
+        city: str | None = None,
+        country: str | None = None,
+    ):
         async with self.uow:
             existing_url = await self.uow.urls.get_url_by_short_code(short_code)
             if existing_url is None:
@@ -156,6 +162,17 @@ class ShortUrlService:
                 and existing_url.expires_at <= datetime.now(UTC)
             ):
                 raise UrlExpiredException()
+
+            click = Click(
+                short_url_id=existing_url.id,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                referrer=referrer,
+                city=city,
+                country=country,
+            )
+
+            await self.uow.clicks.add_click(click)
 
             await self.uow.session.execute(
                 update(ShortUrl)
