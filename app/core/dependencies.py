@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal, get_redis_url
 from app.core.exceptions import InsufficientPermissionsException, InvalidTokenException
 from app.core.security import TokenType, decode_token
+from app.core.tier_entitlements import TIER_ENTITLEMENTS, TierEntitlements
 from app.core.uow import SqlAlchemyUnitOfWork
 from app.models.user import User, UserTier
 from app.services.analytics_service import AnalyticsService
@@ -117,3 +118,11 @@ def get_analytics_service(uow: UOWDep) -> AnalyticsService:
 
 
 AnalyticsServiceDep = Annotated[AnalyticsService, Depends(get_analytics_service)]
+
+
+# Tier entitlements
+def get_user_entitlements(current_user: CurrentUserDep) -> TierEntitlements:
+    return TIER_ENTITLEMENTS[current_user.tier]
+
+
+UserEntitlementsDep = Annotated[TierEntitlements, Depends(get_user_entitlements)]

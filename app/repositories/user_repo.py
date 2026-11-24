@@ -14,6 +14,10 @@ class SqlAlchemyUserRepo(UserRepository):
     async def get_user_by_id(self, user_id: UUID):
         return await self.session.get(User, user_id)
 
+    async def lock_user_row(self, user_id: UUID) -> None:
+        stmt = select(User).where(User.id == user_id).with_for_update()
+        await self.session.execute(stmt)
+
     async def get_user_by_email(self, email: str) -> User | None:
         stmt = select(User).where(User.email == email)
         result = await self.session.execute(stmt)

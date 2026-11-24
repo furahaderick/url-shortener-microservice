@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -94,6 +94,24 @@ class SqlAlchemyShortUrlRepo(ShortUrlRepository):
     ) -> ShortUrl | None:
         stmt = select(ShortUrl).where(
             ShortUrl.original_url == original_url, ShortUrl.owner_id == user_id
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def count_active_urls_by_user_id(self, user_id: UUID) -> int:
+        stmt = select(func.count(ShortUrl.id)).where(
+            ShortUrl.owner_id == user_id,
+            ShortUrl.is_active.is_(True),
+            ShortUrl.expires_at.is_(None) | (ShortUrl.expires_at > func.now()),
+        )
+
+        result = await self.session.scalar(stmt)
+
+        return result or 0
+
+    async def get_url_by_alias(self, custom_alias: str) -> ShortUrl | None:
+        stmt = select(ShortUrl).where(
+            ShortUrl.custom_alias == custom_alias,
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
