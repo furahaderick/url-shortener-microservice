@@ -29,9 +29,14 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-config.set_main_option(
-    "sqlalchemy.url", database_url_obj.render_as_string(hide_password=False)
-)
+# Only use application credentials when no valid URL was supplied.
+database_url = config.get_main_option("sqlalchemy.url")
+
+if not database_url or database_url.startswith("driver://"):
+    config.set_main_option(
+        "sqlalchemy.url",
+        database_url_obj.render_as_string(hide_password=False).replace("%", "%%"),
+    )
 
 
 def run_migrations_offline() -> None:
