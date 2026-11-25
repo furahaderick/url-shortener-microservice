@@ -1,6 +1,8 @@
+import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
+from redis.exceptions import RedisError
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 
@@ -18,11 +20,15 @@ from app.models.click import Click
 from app.models.short_url import ShortUrl
 from app.models.user import User
 from app.schemas.short_url import ShortUrlCreate, ShortUrlUpdate
+from app.services.cache_service import CacheService
+
+logger = logging.getLogger(__name__)
 
 
 class ShortUrlService:
-    def __init__(self, uow: SqlAlchemyUnitOfWork):
+    def __init__(self, uow: SqlAlchemyUnitOfWork, cache_service: CacheService):
         self.uow = uow
+        self.cache = cache_service
 
     async def get_active_urls(self):
         async with self.uow:
@@ -185,6 +191,15 @@ class ShortUrlService:
             # Commit
             await self.uow.commit()
 
+            # Invalidate redis cache after successful deactivation
+            try:
+                await self.cache.delete(f"url:{short_code}")
+            except RedisError:
+                logger.warning(
+                    "Failed to invalidate cache for short URL: %s",
+                    short_code,
+                )
+
             # Optional return
             return existing_url
 
@@ -197,22 +212,63 @@ class ShortUrlService:
         city: str | None = None,
         country: str | None = None,
     ):
-        async with self.uow:
-            existing_url = await self.uow.urls.get_url_by_short_code(short_code)
-            if existing_url is None:
-                raise UrlNotFoundException()
+        cache_key = f"url:{short_code}"
+        cached_url = None
 
-            if not existing_url.is_active:
+        # 1. Try Redis first
+        try:
+            cached_url = await self.cache.get(cache_key)
+
+        except (RedisError, ValueError):
+            logger.warning(
+                "Redis lookup failed for %s",
+                short_code,
+            )
+
+        cache_data = None
+
+        async with self.uow:
+            # 2. Cache miss: retrieve metadata from PostgreSQL
+            if cached_url is None:
+                existing_url = await self.uow.urls.get_url_by_short_code(short_code)
+
+                if existing_url is None:
+                    raise UrlNotFoundException()
+
+                url_id = existing_url.id
+                original_url = str(existing_url.original_url)
+                is_active = existing_url.is_active
+                expires_at = existing_url.expires_at
+
+                cache_data = {
+                    "id": url_id,
+                    "original_url": original_url,
+                    "is_active": is_active,
+                    "expires_at": (expires_at.isoformat() if expires_at else None),
+                }
+
+            # 3. Cache hit: retrieve cached metadata
+            else:
+                url_id = cached_url["id"]
+                original_url = cached_url["original_url"]
+                is_active = cached_url["is_active"]
+
+                expires_at = (
+                    datetime.fromisoformat(cached_url["expires_at"])
+                    if cached_url["expires_at"]
+                    else None
+                )
+
+            # 4. Validate URL
+            if not is_active:
                 raise UrlInactiveException()
 
-            if (
-                existing_url.expires_at is not None
-                and existing_url.expires_at <= datetime.now(UTC)
-            ):
+            if expires_at is not None and expires_at <= datetime.now(UTC):
                 raise UrlExpiredException()
 
+            # 5. Record click
             click = Click(
-                short_url_id=existing_url.id,
+                short_url_id=url_id,
                 ip_address=ip_address,
                 user_agent=user_agent,
                 referrer=referrer,
@@ -222,13 +278,35 @@ class ShortUrlService:
 
             await self.uow.clicks.add_click(click)
 
+            # 6. Increment click count atomically & Commit
             await self.uow.session.execute(
                 update(ShortUrl)
-                .where(ShortUrl.id == existing_url.id)
+                .where(ShortUrl.id == url_id)
                 .values(click_count=ShortUrl.click_count + 1)
             )
 
-            # Commit
             await self.uow.commit()
 
-            return str(existing_url.original_url)
+        # 7. Populate Redis after successful database transaction
+        if cache_data is not None:
+            ttl = 3600
+
+            if expires_at is not None:
+                remaining = int((expires_at - datetime.now(UTC)).total_seconds())
+                ttl = min(ttl, remaining)
+
+            if ttl > 0:
+                try:
+                    await self.cache.set(
+                        cache_key,
+                        cache_data,
+                        ttl=ttl,
+                    )
+
+                except (RedisError, TypeError):
+                    logger.warning(
+                        "Redis write failed for %s",
+                        short_code,
+                    )
+
+        return original_url

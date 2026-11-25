@@ -646,6 +646,22 @@ uvicorn = {version = ">=0.17.6", extras = ["standard"]}
 standard = ["uvicorn[standard] (>=0.15.0)"]
 
 [[package]]
+name = "fastapi-limiter"
+version = "0.2.0"
+description = "A request rate limiter for fastapi"
+optional = false
+python-versions = "<4,>=3.9"
+groups = ["main"]
+files = [
+    {file = "fastapi_limiter-0.2.0-py3-none-any.whl", hash = "sha256:e576ebb29cc9614c2f38471c60ed0e849024e9a1b7a2aeb4c2a31a6d708b4aea"},
+    {file = "fastapi_limiter-0.2.0.tar.gz", hash = "sha256:b042259f6280056b5b2b3f506edd76c8e0648d7a5ce86c3485216a4a0fd0ec14"},
+]
+
+[package.dependencies]
+fastapi = "*"
+pyrate-limiter = ">=3.9.0"
+
+[[package]]
 name = "fastar"
 version = "0.12.0"
 description = "High-level bindings for the Rust tar crate"
@@ -2230,6 +2246,24 @@ files = [
 crypto = ["cryptography (>=3.4.0)"]
 
 [[package]]
+name = "pyrate-limiter"
+version = "4.5.1"
+description = "Python rate limiter with pluggable algorithms and backends"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "pyrate_limiter-4.5.1-py3-none-any.whl", hash = "sha256:bb8dd2926b0679e4ada6629a865e85daa5599268f930c61a8992dafa8bf3ba0d"},
+    {file = "pyrate_limiter-4.5.1.tar.gz", hash = "sha256:7f03c6a9235b00a4ba3c7b1e8cb6b23fbacc9d40b09f326220917a12ef22cc09"},
+]
+
+[package.extras]
+all = ["filelock (>=3.0)", "psycopg[pool] (>=3.2.9)", "redis (>=6.2.0)"]
+filelock = ["filelock (>=3.0)"]
+postgres = ["psycopg[pool] (>=3.2.9)"]
+redis = ["redis (>=6.2.0)"]
+
+[[package]]
 name = "python-discovery"
 version = "1.9.0"
 description = "Python interpreter discovery"
@@ -3247,5 +3281,5 @@ files = [
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.12"
-content-hash = "aa05c1831bf8e704ffaed55c790a796ca99fdcf2827d188d05c9f193de92b31e"
+python-versions = ">=3.12,<4.0"
+content-hash = "cdd4909c835f4bd2aeee3f31afcb4f81fab39e43bd06d5fec91a99ea4f739bcd"

@@ -1,19 +1,20 @@
 from typing import Annotated
 from uuid import UUID
 
-import redis
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import AsyncSessionLocal, get_redis_url
+from app.core.database import AsyncSessionLocal
 from app.core.exceptions import InsufficientPermissionsException, InvalidTokenException
 from app.core.security import TokenType, decode_token
 from app.core.tier_entitlements import TIER_ENTITLEMENTS, TierEntitlements
 from app.core.uow import SqlAlchemyUnitOfWork
 from app.models.user import User, UserTier
 from app.services.analytics_service import AnalyticsService
+from app.services.cache_service import CacheService
 from app.services.short_url_service import ShortUrlService
 from app.services.user_service import UserService
 
@@ -21,16 +22,18 @@ from app.services.user_service import UserService
 bearer_scheme = HTTPBearer(auto_error=True)
 
 
-def get_redis_client():
-    client = redis.Redis.from_url(get_redis_url(), decode_responses=True)
-
-    try:
-        yield client
-    finally:
-        client.close()
+def get_redis_client(req: Request) -> Redis:
+    return req.app.state.redis
 
 
-RedisDep = Annotated[redis.Redis, Depends(get_redis_client)]
+RedisDep = Annotated[Redis, Depends(get_redis_client)]
+
+
+def get_cache_service(req: Request) -> CacheService:
+    return CacheService(req.app.state.redis)
+
+
+CacheServiceDep = Annotated[CacheService, Depends(get_cache_service)]
 
 
 async def get_db():
@@ -105,8 +108,9 @@ UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 # Short URLs
 def get_short_url_service(
     uow: UOWDep,
+    cache_service: CacheServiceDep,
 ) -> ShortUrlService:
-    return ShortUrlService(uow)
+    return ShortUrlService(uow, cache_service)
 
 
 ShortUrlServiceDep = Annotated[ShortUrlService, Depends(get_short_url_service)]

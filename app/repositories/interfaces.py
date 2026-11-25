@@ -1,25 +1,10 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any
 from uuid import UUID
 
 from app.models.click import Click
 from app.models.short_url import ShortUrl
 from app.models.user import User
-
-
-class UrlCacheRepository(ABC):
-    @abstractmethod
-    def get_code_by_url(self, url: str) -> str | None:
-        pass
-
-    @abstractmethod
-    def save_url(self, code: str, url: str) -> None:
-        pass
-
-    @abstractmethod
-    def get_url_by_code(self, code: str) -> str | None:
-        pass
 
 
 class ShortUrlRepository(ABC):
@@ -85,6 +70,9 @@ class UserRepository(ABC):
     async def lock_user_row(self, user_id: UUID) -> None:
         """Locks a user row with user_id"""
 
+    async def get_user_by_id(self, user_id: UUID) -> User | None:
+        """Returns a user queried by user id"""
+
 
 class ClickRepository(ABC):
     @abstractmethod
@@ -92,7 +80,7 @@ class ClickRepository(ABC):
         """Returns a newly created click"""
 
     @abstractmethod
-    async def get_url_click_analytics(self, url_id: UUID) -> dict[str, Any]:
+    async def get_url_click_analytics(self, url_id: UUID):
         """
         Returns click analytics
         (total clicks & time series)
