@@ -4,15 +4,6 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import settings
 
-
-# REDIS
-def get_redis_url():
-    host = settings.REDIS_HOST
-    port = settings.REDIS_PORT
-    db = settings.REDIS_DB
-    return f"redis://{host}:{port}/{db}"
-
-
 # POSTGRES
 database_url_obj = URL.create(
     drivername="postgresql+psycopg_async",
