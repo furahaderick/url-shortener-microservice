@@ -25,6 +25,7 @@ class User(Base):
     )
 
     email: Mapped[str] = mapped_column(String(250), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(100))
 
     is_premium: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="false"

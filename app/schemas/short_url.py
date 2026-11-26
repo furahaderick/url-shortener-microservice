@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, HttpUrl
 
+from app.schemas.user import UserResponse
+
 
 class ShortUrlCreate(BaseModel):
     original_url: HttpUrl
@@ -10,9 +12,6 @@ class ShortUrlCreate(BaseModel):
     title: str | None = None
     description: str | None = None
     favicon: str | None = None
-
-    # Receiving owner id thru body for now
-    owner_id: uuid.UUID
 
 
 class ShortUrlUpdate(BaseModel):
@@ -36,3 +35,7 @@ class ShortUrlResponse(BaseModel):
     owner_id: uuid.UUID
 
     model_config = {"from_attributes": True}
+
+
+class ShortUrlWithOwnerResponse(ShortUrlResponse):
+    owner: UserResponse
